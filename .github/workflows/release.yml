@@ -26,6 +26,7 @@ jobs:
           ctest --test-dir build -C Release --output-on-failure
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $process = Start-Process .\build\Release\PureView.exe -ArgumentList "--self-test" -Wait -PassThru
+          Write-Host "PureView self-test exit code: $($process.ExitCode)"
           if ($process.ExitCode -ne 0) { exit $process.ExitCode }
 
       - name: Package

@@ -37,30 +37,33 @@ int RunSelfTest() {
         return 10;
     }
 
-    Microsoft::WRL::ComPtr<IWICImagingFactory> wicFactory;
-    const HRESULT wicResult = CoCreateInstance(
-        CLSID_WICImagingFactory,
-        nullptr,
-        CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(&wicFactory));
-    if (FAILED(wicResult)) {
-        if (SUCCEEDED(comResult)) {
-            CoUninitialize();
+    int result = 0;
+    {
+        Microsoft::WRL::ComPtr<IWICImagingFactory> wicFactory;
+        const HRESULT wicResult = CoCreateInstance(
+            CLSID_WICImagingFactory,
+            nullptr,
+            CLSCTX_INPROC_SERVER,
+            IID_PPV_ARGS(&wicFactory));
+        if (FAILED(wicResult)) {
+            result = 11;
+        } else {
+            Microsoft::WRL::ComPtr<ID2D1Factory> d2dFactory;
+            D2D1_FACTORY_OPTIONS options{};
+            const HRESULT d2dResult = D2D1CreateFactory(
+                D2D1_FACTORY_TYPE_SINGLE_THREADED,
+                __uuidof(ID2D1Factory),
+                &options,
+                reinterpret_cast<void**>(d2dFactory.GetAddressOf()));
+            if (FAILED(d2dResult)) {
+                result = 12;
+            }
         }
-        return 11;
     }
-
-    Microsoft::WRL::ComPtr<ID2D1Factory> d2dFactory;
-    D2D1_FACTORY_OPTIONS options{};
-    const HRESULT d2dResult = D2D1CreateFactory(
-        D2D1_FACTORY_TYPE_SINGLE_THREADED,
-        __uuidof(ID2D1Factory),
-        &options,
-        reinterpret_cast<void**>(d2dFactory.GetAddressOf()));
     if (SUCCEEDED(comResult)) {
         CoUninitialize();
     }
-    return SUCCEEDED(d2dResult) ? 0 : 12;
+    return result;
 }
 
 HWND FindExistingWindow() {
@@ -144,23 +147,26 @@ int WINAPI wWinMain(
     };
     InitCommonControlsEx(&controls);
 
-    pureview::ViewerWindow viewer;
-    if (!viewer.Create(instance)) {
-        if (SUCCEEDED(comResult)) CoUninitialize();
-        if (instanceMutex) CloseHandle(instanceMutex);
-        return 3;
-    }
-    viewer.Show(showCommand == SW_HIDE ? SW_SHOWNORMAL : showCommand);
-    if (!initialPath.empty()) {
-        viewer.OpenPath(initialPath);
-    } else {
-        viewer.PromptToOpen();
-    }
+    int result = 0;
+    {
+        pureview::ViewerWindow viewer;
+        if (!viewer.Create(instance)) {
+            result = 3;
+        } else {
+            viewer.Show(showCommand == SW_HIDE ? SW_SHOWNORMAL : showCommand);
+            if (!initialPath.empty()) {
+                viewer.OpenPath(initialPath);
+            } else {
+                viewer.PromptToOpen();
+            }
 
-    MSG message{};
-    while (GetMessageW(&message, nullptr, 0, 0) > 0) {
-        TranslateMessage(&message);
-        DispatchMessageW(&message);
+            MSG message{};
+            while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
+            result = static_cast<int>(message.wParam);
+        }
     }
 
     if (SUCCEEDED(comResult)) {
@@ -170,5 +176,5 @@ int WINAPI wWinMain(
         ReleaseMutex(instanceMutex);
         CloseHandle(instanceMutex);
     }
-    return static_cast<int>(message.wParam);
+    return result;
 }
