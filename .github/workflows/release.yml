@@ -35,6 +35,12 @@ jobs:
           $version = "${{ github.ref_name }}".TrimStart("v")
           .\scripts\package.ps1 -BuildDirectory .\build\Release -OutputDirectory dist -Version $version
 
+      - name: Verify per-user install and associations
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          .\scripts\verify-installer.ps1 -PackageDirectory ".\dist\PureView-$version-Windows-x64"
+
       - name: Publish GitHub release
         shell: pwsh
         env:
