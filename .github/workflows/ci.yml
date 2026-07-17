@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Configure
         run: cmake -S . -B build -A x64 -DBUILD_TESTING=ON
@@ -35,7 +35,7 @@ jobs:
         shell: pwsh
         run: .\scripts\package.ps1 -BuildDirectory .\build\Release -OutputDirectory dist -Version 0.1.0
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: PureView-0.1.0-Windows-x64
           path: |

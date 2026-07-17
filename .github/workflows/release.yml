@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Configure
         run: cmake -S . -B build -A x64 -DBUILD_TESTING=ON
