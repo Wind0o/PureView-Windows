@@ -27,8 +27,8 @@ jobs:
       - name: Native runtime self-test
         shell: pwsh
         run: |
-          & .\build\Release\PureView.exe --self-test
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $process = Start-Process .\build\Release\PureView.exe -ArgumentList "--self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { exit $process.ExitCode }
 
       - name: Verify distributable package
         shell: pwsh

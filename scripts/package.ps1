@@ -29,9 +29,13 @@ Copy-Item (Join-Path $RepositoryRoot "installer\uninstall.cmd") $Stage
 Copy-Item (Join-Path $RepositoryRoot "README.md") $Stage
 Copy-Item (Join-Path $RepositoryRoot "LICENSE") $Stage
 
-& (Join-Path $Stage "PureView.exe") --self-test
-if ($LASTEXITCODE -ne 0) {
-    throw "The staged PureView.exe self-test failed with exit code $LASTEXITCODE."
+$StagedProcess = Start-Process `
+    (Join-Path $Stage "PureView.exe") `
+    -ArgumentList "--self-test" `
+    -Wait `
+    -PassThru
+if ($StagedProcess.ExitCode -ne 0) {
+    throw "The staged PureView.exe self-test failed with exit code $($StagedProcess.ExitCode)."
 }
 
 Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $Zip -CompressionLevel Optimal
@@ -39,9 +43,13 @@ Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $Zip -Compression
 $VerificationDirectory = Join-Path $OutputDirectory "_verify-$Version"
 Remove-Item $VerificationDirectory -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive $Zip $VerificationDirectory
-& (Join-Path $VerificationDirectory "PureView.exe") --self-test
-if ($LASTEXITCODE -ne 0) {
-    throw "The independently extracted PureView.exe self-test failed."
+$ExtractedProcess = Start-Process `
+    (Join-Path $VerificationDirectory "PureView.exe") `
+    -ArgumentList "--self-test" `
+    -Wait `
+    -PassThru
+if ($ExtractedProcess.ExitCode -ne 0) {
+    throw "The independently extracted PureView.exe self-test failed with exit code $($ExtractedProcess.ExitCode)."
 }
 foreach ($Required in @("PureView.exe", "install.cmd", "install.ps1", "uninstall.cmd", "uninstall.ps1", "README.md", "LICENSE")) {
     if (-not (Test-Path (Join-Path $VerificationDirectory $Required))) {
