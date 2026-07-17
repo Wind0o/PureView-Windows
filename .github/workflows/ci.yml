@@ -1,0 +1,43 @@
+name: Windows CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -A x64 -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Core regression tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Native runtime self-test
+        shell: pwsh
+        run: |
+          & .\build\Release\PureView.exe --self-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify distributable package
+        shell: pwsh
+        run: .\scripts\package.ps1 -BuildDirectory .\build\Release -OutputDirectory dist -Version 0.1.0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PureView-0.1.0-Windows-x64
+          path: |
+            dist/PureView-0.1.0-Windows-x64.zip
+            dist/PureView-0.1.0-Windows-x64.zip.sha256
+          if-no-files-found: error
